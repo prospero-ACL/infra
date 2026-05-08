@@ -1,0 +1,7 @@
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.localdev
+    ports:
+      - "8080:8080"
