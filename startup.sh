@@ -30,14 +30,14 @@ COMPOSE_PROJECT_NAME=prospero-acl
 if [[ "$mode" = "dev" ]]; then
   echo "Running in dev mode..."
   ENV_FILE=.env.localdev
-  COMPOSE_FILE=docker-compose-localdev.yml
+  DOCKER_COMPOSE_FILE=docker-compose-localdev.yml
 elif [[ "$mode" = "prod" ]]; then
   echo "Running in prod mode..."
   echo "THIS IS NOT IMPLEMENTED YET! Exiting...."
   exit 0
 fi
 
-if [[ -f ENV_FILE ]]; then
+if [[ -f $ENV_FILE ]]; then
   echo "Loading env file..."
   set -a
   source $ENV_FILE
