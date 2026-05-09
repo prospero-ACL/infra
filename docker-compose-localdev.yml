@@ -5,17 +5,32 @@ services:
       - .env.localdev
     environment:
       - "POSTGRES_DB=${POSTGRES_DB}"
-      - "POSTGRES_USERNAME=${POSTGRES_USERNAME}"
+      - "POSTGRES_USER=${POSTGRES_USER}"
       - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
     labels:
       - "org.springframework.boot.service-connection=postgres"
     ports:
       - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
     build:
       context: ../backend
       dockerfile: Dockerfile.localdev
+    env_file:
+      - .env.localdev
+    environment:
+      - "POSTGRES_DB=${POSTGRES_DB}"
+      - "POSTGRES_USER=${POSTGRES_USER}"
+      - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
+    labels:
+      - "org.springframework.boot.service-connection=postgres"
     ports:
       - "8000:8000"
     depends_on:
@@ -37,3 +52,4 @@ services:
 
 volumes:
   node_modules:
+  postgres_data:

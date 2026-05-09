@@ -50,4 +50,5 @@ fi
 echo "Running docker compose..."
 docker compose -f $DOCKER_COMPOSE_FILE -p $COMPOSE_PROJECT_NAME down &&
   (docker volume rm "${COMPOSE_PROJECT_NAME}_node_modules" || true) &&
+  (docker volume rm "${COMPOSE_PROJECT_NAME}_node_modules" || true) &&
   docker compose -f $DOCKER_COMPOSE_FILE -p $COMPOSE_PROJECT_NAME up --build
