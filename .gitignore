@@ -1,2 +1,2 @@
-.env.localdev
-.env.prod
+env.localdev
+env.prod

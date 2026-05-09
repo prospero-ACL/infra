@@ -29,7 +29,7 @@ COMPOSE_PROJECT_NAME=prospero-acl
 
 if [[ "$mode" = "dev" ]]; then
   echo "Running in dev mode..."
-  ENV_FILE=.env.localdev
+  ENV_FILE=env.localdev
   DOCKER_COMPOSE_FILE=docker-compose-localdev.yml
 elif [[ "$mode" = "prod" ]]; then
   echo "Running in prod mode..."
@@ -50,5 +50,5 @@ fi
 echo "Running docker compose..."
 docker compose -f $DOCKER_COMPOSE_FILE -p $COMPOSE_PROJECT_NAME down &&
   (docker volume rm "${COMPOSE_PROJECT_NAME}_node_modules" || true) &&
-  (docker volume rm "${COMPOSE_PROJECT_NAME}_node_modules" || true) &&
+  (docker volume rm "${COMPOSE_PROJECT_NAME}_postgres_data" || true) &&
   docker compose -f $DOCKER_COMPOSE_FILE -p $COMPOSE_PROJECT_NAME up --build
