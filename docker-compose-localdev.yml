@@ -29,6 +29,7 @@ services:
       - "POSTGRES_DB=${POSTGRES_DB}"
       - "POSTGRES_USER=${POSTGRES_USER}"
       - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
+      - "JWT_SECTRET=${JWT_SECTRET}"
     labels:
       - "org.springframework.boot.service-connection=postgres"
     ports:
