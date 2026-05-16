@@ -30,6 +30,10 @@ services:
       - "POSTGRES_USER=${POSTGRES_USER}"
       - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
       - "JWT_SECRET=${JWT_SECRET}"
+      - "GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}"
+      - "GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}"
+      - "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}"
+      - "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}"
     labels:
       - "org.springframework.boot.service-connection=postgres"
     ports:
