@@ -2,10 +2,11 @@
 
 print_help() {
   cat <<EOF
-Usage: $0 [dev|prod]
+Usage: $0 [dev|clean|prod]
 
 Optional positional parameters:
-    dev             Run the application for local development
+    dev             Run the application for local development, keeping existing volumes
+    clean           Run the application for local development, wiping volumes first
     prod            TODO
 
 Options:
@@ -20,15 +21,15 @@ fi
 
 mode=${1:-dev}
 
-if [[ "$mode" != "dev" && "$mode" != "prod" ]]; then
+if [[ "$mode" != "dev" && "$mode" != "clean" && "$mode" != "prod" ]]; then
   echo "Unknown mode. Exiting..."
   exit 1
 fi
 
 COMPOSE_PROJECT_NAME=prospero-acl
 
-if [[ "$mode" = "dev" ]]; then
-  echo "Running in dev mode..."
+if [[ "$mode" = "dev" || "$mode" = "clean" ]]; then
+  echo "Running in $mode mode..."
   ENV_FILE=env.localdev
   DOCKER_COMPOSE_FILE=docker-compose-localdev.yml
 elif [[ "$mode" = "prod" ]]; then
@@ -48,7 +49,12 @@ else
 fi
 
 echo "Running docker compose..."
-docker compose -f $DOCKER_COMPOSE_FILE -p $COMPOSE_PROJECT_NAME down &&
-  (docker volume rm "${COMPOSE_PROJECT_NAME}_node_modules" || true) &&
-  (docker volume rm "${COMPOSE_PROJECT_NAME}_postgres_data" || true) &&
-  docker compose -f $DOCKER_COMPOSE_FILE -p $COMPOSE_PROJECT_NAME up --build
+if [[ "$mode" = "clean" ]]; then
+  docker compose -f $DOCKER_COMPOSE_FILE -p $COMPOSE_PROJECT_NAME down &&
+    (docker volume rm "${COMPOSE_PROJECT_NAME}_node_modules" || true) &&
+    (docker volume rm "${COMPOSE_PROJECT_NAME}_postgres_data" || true) &&
+    docker compose -f $DOCKER_COMPOSE_FILE -p $COMPOSE_PROJECT_NAME up --build
+else
+  docker compose -f $DOCKER_COMPOSE_FILE -p $COMPOSE_PROJECT_NAME down &&
+    docker compose -f $DOCKER_COMPOSE_FILE -p $COMPOSE_PROJECT_NAME up --build
+fi
