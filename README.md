@@ -1,4 +1,6 @@
-# Infrastracture repo for Prospero ACL
+# Infrastructure repo for Prospero ACL
+
+---
 
 ## Summary
 
@@ -10,6 +12,8 @@ Additionally it contains copies of some scientific papaers that relevant to the
 development of the ACL systems.
 
 Finally it contains the env file that holds all the environment variables.
+
+---
 
 ## Usage
 
@@ -36,8 +40,12 @@ in development mode:
 > With `./startup.sh clean` It will remove all the containers and volumes
 > created by the `dev` command. The database will be reset to its initial state.
 
+---
+
 ## Useful Links
 
 - Frontend application here <http://localhost:5173>
 - Backend application here <http://localhost:8000>
 - Database connection in port 5432(Credentials in the env file)
+
+---
