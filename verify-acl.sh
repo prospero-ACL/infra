@@ -22,6 +22,13 @@ check() { # label expected actual
   fi
 }
 
+# Without this, an unreachable database reads as "allowed" in denied() and the patrician-insert
+# check passes against nothing.
+if [ "$(su_sql 'SELECT 1')" != "1" ]; then
+  echo "Cannot query Postgres in container '$CONTAINER' — is the stack running?" >&2
+  exit 2
+fi
+
 cleanup() { su_sql "DELETE FROM vector_store WHERE metadata->>'trilogy' = '$MARK';" >/dev/null; }
 trap cleanup EXIT
 

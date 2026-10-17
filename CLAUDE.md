@@ -23,24 +23,33 @@ directories at the same level as `infra/`:
 ## Commands
 
 ```bash
-./startup.sh dev      # tear down, rebuild, and bring up the full local dev stack
-./startup.sh -h        # show usage
+./startup.sh dev      # tear down, rebuild, and bring up the full stack, keeping volumes
+./startup.sh clean    # same, but wipe the postgres_data and node_modules volumes first
+./startup.sh -h       # show usage
+./verify-acl.sh       # prove the Postgres roles + RLS policies at SQL level (11 checks)
+./set-clearance.sh    # list users; `./set-clearance.sh <providerId|email> <LEVEL>` assigns one
 ```
 
 `startup.sh prod` is not implemented yet.
 
 There is no build/lint/test tooling in this repo — those live in `../backend` and `../frontend`.
 
-What `startup.sh dev` actually does:
+What `startup.sh` does:
 1. Sources `env.localdev` into the shell environment.
 2. `docker compose -f docker-compose-localdev.yml -p prospero-acl down`
-3. Removes the `prospero-acl_node_modules` and `prospero-acl_postgres_data` volumes (i.e. every
-   `dev` run starts from a clean database and a clean `node_modules` — expect a full `npm ci` and
-   an empty Postgres on every run).
+3. `clean` only: removes the `prospero-acl_node_modules` and `prospero-acl_postgres_data` volumes
+   (a fresh database, rebuilt by the backend's Flyway migrations on boot).
 4. `docker compose ... up --build`
 
-If you only need one service restarted/rebuilt without wiping volumes, use `docker compose -f
-docker-compose-localdev.yml -p prospero-acl up --build <service>` directly instead of the script.
+To restart/rebuild one service, source `env.localdev` and run `docker compose -f
+docker-compose-localdev.yml -p prospero-acl up -d --build <service>`. **Always pass
+`-p prospero-acl`**: without it Compose uses the project name `infra`, which attaches a different,
+empty `infra_postgres_data` volume.
+
+`verify-acl.sh` and `set-clearance.sh` talk to the running `prospero-acl-pgvector-1` container
+(override with `PGVECTOR_CONTAINER`). Clearance is deliberately not settable through the API —
+it selects the Postgres role a user's corpus queries run as — so `set-clearance.sh` is the
+assignment path; changes apply on the user's next request.
 
 ## Architecture: the local stack
 
@@ -55,12 +64,12 @@ Three services on one Compose network, project name `prospero-acl`:
   `../frontend` into `/app` with a separate `node_modules` named volume (so the container's
   `node_modules` doesn't get shadowed by the host mount). Depends on `backend`.
 
-All three services load `env.localdev` via `env_file`; `backend` and `pgvector` also explicitly
-re-list `POSTGRES_DB`/`POSTGRES_USER`/`POSTGRES_PASSWORD` (and `backend` additionally
-`JWT_SECRET`, `GITHUB_CLIENT_ID/SECRET`, `GOOGLE_CLIENT_ID/SECRET`) under `environment:` — when
-adding a new env var that the JVM needs to see, it must be added to `env.localdev` **and** to the
-`backend` service's `environment:` list, since Spring only picks up variables actually present in
-its process environment.
+All three services load `env.localdev` via `env_file`, which is enough to put a variable into the
+container's environment — the Postgres tier-role passwords and `OPENAI_API_KEY` reach the backend
+this way. `backend` and `pgvector` also re-list some variables under `environment:` using
+`${...}` interpolation, which is resolved from the **shell** running `docker compose`; that is why
+`startup.sh` sources `env.localdev` first, and why running Compose without sourcing it sets those
+entries to blank strings that override the `env_file` values.
 
 Inside the Compose network, the backend's Postgres datasource points at host `pgvector` (the
 service name), not `localhost` — this only resolves inside the Compose network.
