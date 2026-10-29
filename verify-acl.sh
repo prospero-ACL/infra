@@ -5,7 +5,7 @@
 set -uo pipefail
 cd "$(dirname "$0")"
 set -a
-. ./env.localdev
+. "./${ENV_FILE:-env.localdev}"
 set +a
 
 CONTAINER=${PGVECTOR_CONTAINER:-prospero-acl-pgvector-1}

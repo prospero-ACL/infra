@@ -1,0 +1,26 @@
+# One origin for the whole app: no CORS, and the access_token cookie is first-party.
+# Caddy obtains and renews the Let's Encrypt certificate for {$DOMAIN} on its own.
+{$DOMAIN} {
+	encode zstd gzip
+
+	# mirrors the Vite dev proxy: /api/* -> /api/v1/*
+	handle_path /api/* {
+		rewrite * /api/v1{path}
+		reverse_proxy backend:8000
+	}
+
+	# OAuth login start and provider callback
+	handle /oauth2/* {
+		reverse_proxy backend:8000
+	}
+	handle /login/oauth2/* {
+		reverse_proxy backend:8000
+	}
+
+	# the React build; unknown paths fall back to index.html for client-side routing
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

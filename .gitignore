@@ -1,3 +1,2 @@
-env.localdev
-env.prod
+env.*
 /documents/papers-review.md

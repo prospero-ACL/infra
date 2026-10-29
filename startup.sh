@@ -7,7 +7,7 @@ Usage: $0 [dev|clean|prod]
 Optional positional parameters:
     dev             Run the application for local development, keeping existing volumes
     clean           Run the application for local development, wiping volumes first
-    prod            TODO
+    prod            Run the production stack (env.prod, Caddy on 80/443) detached
 
 Options:
     -h, --help      Show this help message and exit
@@ -34,8 +34,8 @@ if [[ "$mode" = "dev" || "$mode" = "clean" ]]; then
   DOCKER_COMPOSE_FILE=docker-compose-localdev.yml
 elif [[ "$mode" = "prod" ]]; then
   echo "Running in prod mode..."
-  echo "THIS IS NOT IMPLEMENTED YET! Exiting...."
-  exit 0
+  ENV_FILE=env.prod
+  DOCKER_COMPOSE_FILE=docker-compose-prod.yml
 fi
 
 if [[ -f $ENV_FILE ]]; then
@@ -54,6 +54,9 @@ if [[ "$mode" = "clean" ]]; then
     (docker volume rm "${COMPOSE_PROJECT_NAME}_node_modules" || true) &&
     (docker volume rm "${COMPOSE_PROJECT_NAME}_postgres_data" || true) &&
     docker compose -f $DOCKER_COMPOSE_FILE -p $COMPOSE_PROJECT_NAME up --build
+elif [[ "$mode" = "prod" ]]; then
+  # rebuilds and replaces the containers in place; postgres_data and caddy_data are kept
+  docker compose -f $DOCKER_COMPOSE_FILE -p $COMPOSE_PROJECT_NAME up -d --build --remove-orphans
 else
   docker compose -f $DOCKER_COMPOSE_FILE -p $COMPOSE_PROJECT_NAME down &&
     docker compose -f $DOCKER_COMPOSE_FILE -p $COMPOSE_PROJECT_NAME up --build

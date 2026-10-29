@@ -1,0 +1,49 @@
+# Single-host production stack: only Caddy is published; backend and Postgres stay on the
+# internal Compose network. Every variable comes from env.prod via env_file — no ${...}
+# interpolation, so nothing depends on the shell having sourced it.
+services:
+  pgvector:
+    image: "pgvector/pgvector:pg16"
+    restart: unless-stopped
+    env_file:
+      - env.prod
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    env_file:
+      - env.prod
+    depends_on:
+      pgvector:
+        condition: service_healthy
+
+  caddy:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    env_file:
+      - env.prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - "backend"
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

@@ -7,7 +7,7 @@
 #   ./set-clearance.sh <providerId|email> <PLEBIAN|EQUES|PATRICIAN>
 set -euo pipefail
 cd "$(dirname "$0")"
-set -a; . ./env.localdev; set +a
+set -a; . "./${ENV_FILE:-env.localdev}"; set +a
 
 CONTAINER=${PGVECTOR_CONTAINER:-prospero-acl-pgvector-1}
 

@@ -25,12 +25,11 @@ directories at the same level as `infra/`:
 ```bash
 ./startup.sh dev      # tear down, rebuild, and bring up the full stack, keeping volumes
 ./startup.sh clean    # same, but wipe the postgres_data and node_modules volumes first
+./startup.sh prod     # production stack from env.prod + docker-compose-prod.yml, detached, volumes kept
 ./startup.sh -h       # show usage
 ./verify-acl.sh       # prove the Postgres roles + RLS policies at SQL level (11 checks)
 ./set-clearance.sh    # list users; `./set-clearance.sh <providerId|email> <LEVEL>` assigns one
 ```
-
-`startup.sh prod` is not implemented yet.
 
 There is no build/lint/test tooling in this repo — those live in `../backend` and `../frontend`.
 
@@ -47,7 +46,8 @@ docker-compose-localdev.yml -p prospero-acl up -d --build <service>`. **Always p
 empty `infra_postgres_data` volume.
 
 `verify-acl.sh` and `set-clearance.sh` talk to the running `prospero-acl-pgvector-1` container
-(override with `PGVECTOR_CONTAINER`). Clearance is deliberately not settable through the API —
+(override with `PGVECTOR_CONTAINER`) and source `env.localdev` (override with
+`ENV_FILE=env.prod` on the server). Clearance is deliberately not settable through the API —
 it selects the Postgres role a user's corpus queries run as — so `set-clearance.sh` is the
 assignment path; changes apply on the user's next request.
 
@@ -74,14 +74,33 @@ entries to blank strings that override the `env_file` values.
 Inside the Compose network, the backend's Postgres datasource points at host `pgvector` (the
 service name), not `localhost` — this only resolves inside the Compose network.
 
+## Architecture: production (single EC2 host)
+
+`docker-compose-prod.yml` runs the same project name `prospero-acl` on one EC2 instance (runbook in
+`README.md`). Differences from localdev:
+
+- **caddy** replaces the Vite dev server: built from `../frontend/Dockerfile.prod` (the `vite
+  build` output copied into a `caddy:2-alpine` image), with `./Caddyfile` mounted in. It is the
+  only published service (80/443). It terminates TLS for `$DOMAIN` with automatic Let's Encrypt, serves
+  the SPA, and proxies `/api/*` → `backend:8000/api/v1/*` (mirroring the Vite proxy rewrite),
+  plus `/oauth2/*` and `/login/oauth2/*` to the backend. Frontend and API share one origin.
+- **backend** is built from `../backend/Dockerfile.prod` (multi-stage, JRE-only runtime). It reads
+  `APP_FRONTEND_URL`, `COOKIE_SECURE` and `SHOW_SQL`, which default to the dev values when unset, and relies on
+  `server.forward-headers-strategy=framework` so the OAuth redirect URI comes out as `https://$DOMAIN/...`.
+- **pgvector** and **backend** publish no ports. Everything comes from `env.prod` via `env_file`
+  with no `${...}` interpolation, so sourcing is not required (startup.sh still does it).
+- Template for the env file: `env.prod.example` (tracked). Localhost smoke test:
+  `env.prod` with `DOMAIN=localhost`, `-p prospero-acl-prodtest` (Caddy's self-signed cert; OAuth
+  itself can't complete at localhost).
+
 ## Env files
 
 - `env.localdev` and `env.prod` are gitignored (see `.gitignore`) and are **not** tracked in this
   repo's history — they exist only on disk locally. `env.localdev` currently holds live secrets
   (OAuth client secrets, JWT secret, OpenAI API key, Postgres password) — treat it as sensitive
   and never add/force it into git.
-- `env.prod` is referenced by `.gitignore` but there is no `docker-compose-prod.yml` yet and no
-  prod path implemented in `startup.sh`.
+- `env.prod` is gitignored too and lives only on the server; `env.prod.example` lists its keys.
+  `POSTGRES_DB` must stay `postgres` because the backend's datasource URL hardcodes that database.
 
 ## Documents
 
