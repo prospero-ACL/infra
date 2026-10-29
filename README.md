@@ -66,20 +66,21 @@ Internet ─443/80─► caddy ─┬─ /api/* → backend:8000/api/v1/*
 
 ### One-time setup
 
-1. **EC2**: launch a `t3.medium` with Ubuntu 24.04 and a 30 GB gp3 disk.
+1. **EC2**: launch a `t3.small` (2 GB; free tier) with Ubuntu LTS (24.04 or 26.04) and a 30 GB gp3 disk.
    Security group inbound rules: 22 from *your IP* only, 80 and 443 from anywhere.
-   Never open 5432 or 8000.
+   Never open 5432 or 8000. Under *Advanced details → User data*, paste `ec2-user-data.sh`
+   (swap, Docker with compose and buildx). If the instance already exists, run it once
+   over SSH instead: `sudo bash ec2-user-data.sh`.
 2. **Elastic IP**: allocate one and associate it with the instance.
-3. **DNS**: at your domain registrar, add an A record such as `rag.example.com` → Elastic IP.
+3. **DNS** (Cloudflare → stackden.eu → DNS → Records → Add record): type `A`, name `prospero`,
+   IPv4 = Elastic IP, proxy status **DNS only (grey cloud)**. The orange cloud would break
+   Caddy's certificate issuance, cap uploads at 100 MB and time out requests after 100 s.
 4. **Budget**: in AWS Budgets, create a monthly cost budget (e.g. $40) with an email alert.
-5. **Server**: SSH in (`ssh -i key.pem ubuntu@rag.example.com`), then run:
+5. **Server**: SSH in (`ssh -i key.pem ubuntu@prospero.stackden.eu`), then run:
 
    ```bash
-   curl -fsSL https://get.docker.com | sudo sh
-   sudo usermod -aG docker ubuntu && exit   # log back in so the group applies
-   # 2 GB swap: the Maven build and the JVM need headroom next to Postgres
-   sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile \
-     && sudo swapon /swapfile && echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+   cloud-init status --wait   # wait for user data to finish; log: /var/log/cloud-init-output.log
+   docker compose version && free -h
    mkdir ~/prospero && cd ~/prospero
    git clone https://github.com/prospero-ACL/infra.git
    git clone https://github.com/prospero-ACL/backend.git
@@ -87,13 +88,14 @@ Internet ─443/80─► caddy ─┬─ /api/* → backend:8000/api/v1/*
    ```
 
    (For private repos, add a deploy key or use `rsync` from your machine instead.)
-6. **Env file**: fill in `env.prod.example` locally and save it as `env.prod`. Use fresh
+6. **Env file**: fill in `env.prod.example` locally and save it as `env.prod`, with
+   `DOMAIN=prospero.stackden.eu` and `APP_FRONTEND_URL=https://prospero.stackden.eu`. Use fresh
    secrets: a new JWT secret and new Postgres passwords. Copy it to the server:
-   `scp env.prod ubuntu@rag.example.com:~/prospero/infra/`
+   `scp -i key.pem env.prod ubuntu@prospero.stackden.eu:~/prospero/infra/`
 7. **OAuth apps**: add these redirect URIs:
-   - Google Cloud Console: `https://rag.example.com/login/oauth2/code/google`
+   - Google Cloud Console: `https://prospero.stackden.eu/login/oauth2/code/google`
    - GitHub (allows only one callback per OAuth app, so create a second app for prod):
-     `https://rag.example.com/login/oauth2/code/github`
+     `https://prospero.stackden.eu/login/oauth2/code/github`
 8. **Start**: `cd ~/prospero/infra && ./startup.sh prod`
 
 ### Day to day
