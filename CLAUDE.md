@@ -26,6 +26,7 @@ directories at the same level as `infra/`:
 ./startup.sh dev      # tear down, rebuild, and bring up the full stack, keeping volumes
 ./startup.sh clean    # same, but wipe the postgres_data and node_modules volumes first
 ./startup.sh prod     # production stack from env.prod + docker-compose-prod.yml, detached, volumes kept
+./startup.sh prod-clean  # same, but wipes postgres_data first (asks yes/no; caddy_data/certs kept)
 ./startup.sh -h       # show usage
 ./verify-acl.sh       # prove the Postgres roles + RLS policies at SQL level (11 checks)
 ./set-clearance.sh    # list users; `./set-clearance.sh <providerId|email> <LEVEL>` assigns one
@@ -39,6 +40,12 @@ What `startup.sh` does:
 3. `clean` only: removes the `prospero-acl_node_modules` and `prospero-acl_postgres_data` volumes
    (a fresh database, rebuilt by the backend's Flyway migrations on boot).
 4. `docker compose ... up --build`
+
+`prod` skips the `down` and runs `up -d --build --remove-orphans` with `env.prod`, so only containers
+whose image changed are recreated. `prod-clean` asks for a typed `yes`/`no`, then does `down`, removes
+only `prospero-acl_postgres_data`, and brings the prod stack up. A fresh database is also the way to
+re-apply changed tier-role passwords, since Flyway's V2 migration sets them only once (otherwise use
+`ALTER ROLE` by hand).
 
 To restart/rebuild one service, source `env.localdev` and run `docker compose -f
 docker-compose-localdev.yml -p prospero-acl up -d --build <service>`. **Always pass

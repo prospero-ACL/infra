@@ -103,6 +103,7 @@ Internet ─443/80─► caddy ─┬─ /api/* → backend:8000/api/v1/*
 ```bash
 cd ~/prospero && for r in infra backend frontend; do git -C $r pull; done
 cd infra && ./startup.sh prod                       # rebuild + restart, data kept
+./startup.sh prod-clean                             # same, but wipes the database (asks yes/no)
 docker compose -f docker-compose-prod.yml -p prospero-acl logs -f backend
 ENV_FILE=env.prod ./verify-acl.sh
 ENV_FILE=env.prod ./set-clearance.sh <email> PATRICIAN
